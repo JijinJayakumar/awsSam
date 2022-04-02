@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "awss3cognitolamdastack"
+s3_bucket = "awscognitolamdastackbucket"
+s3_prefix = ""
+region = "ap-south-1"
+capabilities = "CAPABILITY_IAM"
+image_repositories = []

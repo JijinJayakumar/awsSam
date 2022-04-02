@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  awscognitolamdastackbucket
+  Sample SAM Template for awscognitolamdastackbucket
+
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: nodejs14.x
+    Architectures:
+      - x86_64
+Resources:
+ 
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: cognito-lambda-bucket-from-sam

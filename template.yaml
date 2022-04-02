@@ -1,0 +1,214 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  awss3cognitolamdastack
+  Sample SAM Template for awss3cognitolamdastack
+
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: nodejs14.x
+    Architectures:
+      - x86_64
+Metadata:
+  AWS::Serverless::Application:
+    Name: awss3cognitolamdastack
+Resources:
+  # Create api services with authentifictaions
+  myAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'GET, OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: "'500'"
+      Auth:
+        DefaultAuthorizer: MyCustomCognitoAuthorizer
+        Authorizers:
+          MyCustomCognitoAuthorizer:
+            UserPoolArn: arn:aws:cognito-idp:ap-south-1:151294847163:userpool/ap-south-1_V6BRYpad5
+  # Stack:
+  #   Type: AWS::Serverless::Application
+  #   Properties:
+  #     Location: ./templateb.yaml
+  # create s3 bucket
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: cognito-lambda-bucket-from-sam
+
+  #createTable for users
+  MyDynamoTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: user_id
+        Type: String
+      TableName: testbucket
+
+  # lambda functions
+  GetAllUsersWithNoAuth:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: users.getAllUsers
+      Events:
+        GetAllUsers:
+          Type: Api
+          Properties:
+            Path: /GetAllUsers
+            Method: GET
+
+      Policies: AmazonDynamoDBFullAccess
+  GetAllUsers:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: users.getAllUsers
+      Events:
+        GetAllUsers:
+          Type: Api
+          Properties:
+            Path: /GetAllUsers
+            Method: GET
+            RestApiId: !Ref myAPI # refer to api resource with cognito authorizer
+
+      Policies: AmazonDynamoDBFullAccess
+  CreateUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: users.CreateUser
+
+      Events:
+        GetAllUsers:
+          Type: Api
+          Properties:
+            Path: /CreateUser
+            Method: POST
+            RestApiId: !Ref myAPI # refer to api resource with cognito authorizer
+
+      Policies: AmazonDynamoDBFullAccess
+
+  DeleteUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: users.DeleteUser
+
+      Events:
+        GetAllUsers:
+          Type: Api
+          Properties:
+            Path: /DeleteUser/{id}
+            Method: DELETE
+            RestApiId: !Ref myAPI # refer to api resource with cognito authorizer
+
+      Policies: AmazonDynamoDBFullAccess
+
+  UpdateUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: users.UpdateUser
+
+      Events:
+        GetAllUsers:
+          Type: Api
+          Properties:
+            Path: /UpdateUser/{id}
+            Method: PUT
+            RestApiId: !Ref myAPI # refer to api resource with cognito authorizer
+
+      Policies: AmazonDynamoDBFullAccess
+
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.lambdaHandler
+
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+
+Outputs:
+  WebBaseUrl:
+    Description: "RESTAPI ENDPOINT"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  APIurl:
+    Description: API url
+    Value: !Sub "https://${myAPI}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+    # Export:
+    #   Name: APIurl
+
+  # ## COGNITO - USER POOL / USER POOL CLIENT
+
+  # rUserPool:
+  #   Type: AWS::Cognito::UserPool
+  #   Properties:
+  #     AdminCreateUserConfig:
+  #       AllowAdminCreateUserOnly: true
+  #     AutoVerifiedAttributes:
+  #       - email
+  #     Schema:
+  #       - AttributeDataType: String
+  #         Mutable: true
+  #         Name: given_name
+  #         Required: true
+  #       - AttributeDataType: String
+  #         Mutable: true
+  #         Name: family_name
+  #         Required: true
+  #       - AttributeDataType: String
+  #         Mutable: false
+  #         Name: email
+  #         Required: true
+  #     UsernameAttributes:
+  #       - email
+  #     UsernameConfiguration:
+  #       CaseSensitive: false
+
+  # rAmplifyCognitoClient:
+  #   Type: AWS::Cognito::UserPoolClient
+  #   Properties:
+  #     AccessTokenValidity: 1
+  #     AllowedOAuthFlows:
+  #       - implicit
+  #     AllowedOAuthFlowsUserPoolClient: true
+  #     AllowedOAuthScopes:
+  #       - email
+  #       - openid
+  #       - profile
+  #       - aws.cognito.signin.user.admin
+  #     CallbackURLs:
+  #       - "http://localhost"
+  #     EnableTokenRevocation: true
+  #     ExplicitAuthFlows:
+  #       - ALLOW_ADMIN_USER_PASSWORD_AUTH
+  #       - ALLOW_CUSTOM_AUTH
+  #       - ALLOW_USER_PASSWORD_AUTH
+  #       - ALLOW_USER_SRP_AUTH
+  #       - ALLOW_REFRESH_TOKEN_AUTH
+  #     IdTokenValidity: 1
+  #     LogoutURLs:
+  #       - "http://localhost"
+  #     PreventUserExistenceErrors: ENABLED
+  #     ReadAttributes:
+  #       - given_name
+  #       - family_name
+  #       - email
+  #       - email_verified
+  #     RefreshTokenValidity: 1
+  #     SupportedIdentityProviders:
+  #       - COGNITO
+  #     TokenValidityUnits:
+  #       AccessToken: hours
+  #       IdToken: hours
+  #       RefreshToken: days
+  #     UserPoolId: !Ref rUserPool
