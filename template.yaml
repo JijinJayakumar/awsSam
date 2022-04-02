@@ -58,7 +58,7 @@ Resources:
         GetAllUsers:
           Type: Api
           Properties:
-            Path: /GetAllUsers
+            Path: /GetAllUsersNoAuth
             Method: GET
 
       Policies: AmazonDynamoDBFullAccess
